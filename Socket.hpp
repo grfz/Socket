@@ -1,6 +1,24 @@
+/*
+ * Socket.hpp
+ * This file is part of VallauriSoft
+ *
+ * Copyright (C) 2012 - Comina, gnuze
+ *
+ * VallauriSoft is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * VallauriSoft is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with VallauriSoft. If not, see <http://www.gnu.org/licenses/>.
+ */
 
 #ifndef _SOCKET_HPP_
-
 #define _SOCKET_HPP_
 
 #include <iostream>
@@ -34,6 +52,25 @@ namespace Socket
         Data data;
     }Datagram;
     
+    struct sockaddr_in* to_sockaddr(Address* a)
+    {   struct sockaddr_in* ret;
+
+        ret=(struct sockaddr_in*) malloc (sizeof(struct sockaddr_in));
+        ret->sin_family = AF_INET;
+        inet_aton(a->ip.c_str(),&(ret->sin_addr));
+        ret->sin_port=htons(a->port);
+            
+        return ret;
+    }
+
+    Address* from_sockaddr(struct sockaddr_in* address)
+    {   Address* ret;
+
+        ret=(Address*)malloc(sizeof(Address));
+        ret->ip = inet_ntoa(address->sin_addr);
+        ret->port = ntohs(address->sin_port);
+
+    }
     class Exception
     {
     private:
@@ -52,25 +89,31 @@ namespace Socket
         
     public:
         
-        UDP(void)
+        UDP(void);
+        ~UDP(void);
+        void close(void);
+        void bind(Port port);
+        void send(Ip ip, Port port, Data data);
+        Datagram receive();
+    };
+
+    UDP::UDP(void)
         {
-            this->_socket_id = socket(AF_INET, SOCK_DGRAM, 0);
-            
-            if (this->_socket_id == -1) throw Exception("[Constructor] Cannot create socket");
-            
+            this->_socket_id = socket(AF_INET, SOCK_DGRAM, 0);   
+            if (this->_socket_id == -1) throw Exception("[Constructor] Cannot create socket");           
             this->_binded = false;
         }
-        
-        ~UDP(void)
+
+    UDP::~UDP(void)
         {
         }
         
-        void close(void)
+    void UDP::close(void)
         {
             shutdown(this->_socket_id, SHUT_RDWR);
         }
         
-        void listen_on_port(Port port)
+    void UDP::bind(Port port)
         {
             struct sockaddr_in address;
             address.sin_family = AF_INET;
@@ -82,8 +125,8 @@ namespace Socket
                 this->close();
                 this->_socket_id = socket(AF_INET, SOCK_DGRAM, 0);
             }
-            
-            if (bind(this->_socket_id, (struct sockaddr*)&address, sizeof(struct sockaddr_in)) == -1)
+            // ::bind() calls the function bind() from <arpa/inet.h> (outside the namespace)            
+            if (::bind(this->_socket_id, (struct sockaddr*)&address, sizeof(struct sockaddr_in)) == -1)
             {
                 stringstream error;
                 error << "[listen_on_port] with [port=" << port << "] Cannot bind socket";
@@ -93,7 +136,7 @@ namespace Socket
             this->_binded = true;
         }
         
-        void send(Ip ip, Port port, Data data)
+    void UDP::send(Ip ip, Port port, Data data)
         {
             struct sockaddr_in address;
             address.sin_family = AF_INET;
@@ -108,7 +151,7 @@ namespace Socket
             }
         }
         
-        Datagram receive()
+    Datagram UDP::receive()
         {
             int size = sizeof(struct sockaddr_in);
             char *buffer = (char*)malloc(sizeof(char) * MAX_BUFFER);
@@ -119,14 +162,13 @@ namespace Socket
             
             ret.data = buffer;
             ret.address.ip = inet_ntoa(address.sin_addr);
-            ret.address.port = address.sin_port;
+            ret.address.port = ntohs(address.sin_port);
             
             free(buffer);
             
             return ret;
         }
-    };
 }
 
-#endif
+#endif   // _SOCKET_HPP_
 

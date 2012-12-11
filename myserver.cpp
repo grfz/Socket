@@ -10,7 +10,7 @@ int main(void)
     {
         Socket::UDP sock;
         
-        sock.listen_on_port(2000);
+        sock.bind(2000);
         
         Socket::Datagram received = sock.receive();
         

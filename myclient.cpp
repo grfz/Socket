@@ -10,7 +10,7 @@ int main(void)
     {
         Socket::UDP sock;
         
-        sock.listen_on_port(3000);
+        sock.bind(3000);
         
         sock.send("127.0.0.1", 2000, "request");
         
