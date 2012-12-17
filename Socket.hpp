@@ -69,8 +69,10 @@ namespace Socket
         ret=(Address*)malloc(sizeof(Address));
         ret->ip = inet_ntoa(address->sin_addr);
         ret->port = ntohs(address->sin_port);
-
+        
+        return ret;
     }
+
     class Exception
     {
     private:
